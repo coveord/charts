@@ -2,7 +2,7 @@
 replicaCount: 1
 image:
   repository: hjacobs/kube-ops-view
-  tag: latest
+  tag: 20.4.0
   pullPolicy: IfNotPresent
 service:
   # annotations:
@@ -21,11 +21,40 @@ resources:
     memory: 64Mi
 ingress:
   enabled: false
-  # hostname: kube-ops-view.local
-  # annotations:
+  path: /
+  hostname: kube-ops-view.local
+  annotations: {}
   #   kubernetes.io/ingress.class: nginx
-  # tls:
+  tls: []
   ## Secrets must be manually created in the namespace
   #   - secretName: kube-ops-view.local-tls
   #     hosts:
   #       - kube-ops-view.local
+rbac:
+  # If true, create & use RBAC resources
+  create: false
+  # Ignored if rbac.create is true
+  serviceAccountName: default
+
+## Additional pod labels
+## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+podLabels: {}
+affinity: {}
+nodeSelector: {}
+tolerations: []
+
+# Add securityContext
+securityContext: {}
+
+# Add securityContext at pod level:
+podSecurityContext: {}
+
+# Defaults for Redis
+redis:
+  enabled: false
+  usePassword: false
+  cluster:
+    enabled: false
+  master:
+    persistence:
+      enabled: false

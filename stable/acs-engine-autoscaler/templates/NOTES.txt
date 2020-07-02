@@ -1,13 +1,20 @@
+#########################
+####  DEPRECATED     ####
+#########################
+# acs-engine-autoscaler is deprecated.
+# If you wish to use the autoscaler in acs-engine, refer to
+# https://github.com/kubernetes/autoscaler instead.
+
 {{- if and .Values.acsenginecluster.resourcegroup .Values.acsenginecluster.azurespappid .Values.acsenginecluster.azurespsecret .Values.acsenginecluster.azuresptenantid .Values.acsenginecluster.kubeconfigprivatekey .Values.acsenginecluster.clientprivatekey -}}
 
 The acs-engine-autoscaler is getting provisioned in your cluster. After a few minutes, you can run the following to verify.
 
 To verify that acs-engine-autoscaler has started, run:
 
-  kubectl --namespace={{ .Release.Namespace }} get pods -l "app={{ template "name" . }}"
+  kubectl --namespace={{ .Release.Namespace }} get pods -l "app={{ template "acs-engine-autoscaler.name" . }}"
 
 To verify that acs-engine-autoscaler is running as expected, run:
-  kubectl logs $(kubectl --namespace={{ .Release.Namespace }} get pods -l "app={{ template "name" . }}" -o jsonpath="{.items[0].metadata.name}")
+  kubectl logs $(kubectl --namespace={{ .Release.Namespace }} get pods -l "app={{ template "acs-engine-autoscaler.name" . }}" -o jsonpath="{.items[0].metadata.name}")
 
 {{- else -}}
 ##############################################################################

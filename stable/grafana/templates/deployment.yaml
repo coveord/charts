@@ -1,80 +1,44 @@
-apiVersion: extensions/v1beta1
+{{ if (or (not .Values.persistence.enabled) (eq .Values.persistence.type "pvc")) }}
+apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: {{ template "grafana.fullname" . }}
+  namespace: {{ template "grafana.namespace" . }}
   labels:
-    app: {{ template "grafana.fullname" . }}
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-    component: "{{ .Values.server.name }}"
-    heritage: "{{ .Release.Service }}"
-    release: "{{ .Release.Name }}"
-  name: {{ template "grafana.server.fullname" . }}
+    {{- include "grafana.labels" . | nindent 4 }}
+{{- if .Values.labels }}
+{{ toYaml .Values.labels | indent 4 }}
+{{- end }}
+{{- with .Values.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      {{- include "grafana.selectorLabels" . | nindent 6 }}
+{{- with .Values.deploymentStrategy }}
+  strategy:
+{{ toYaml . | trim | indent 4 }}
+{{- end }}
   template:
     metadata:
-      annotations:
-      {{- range $key, $value := .Values.server.annotations }}
-        {{ $key }}: {{ $value }}
-      {{- end }}
       labels:
-        app: {{ template "grafana.fullname" . }}
-        component: "{{ .Values.server.name }}"
-        release: "{{ .Release.Name }}"
+        {{- include "grafana.selectorLabels" . | nindent 8 }}
+{{- with .Values.podLabels }}
+{{ toYaml . | indent 8 }}
+{{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/dashboards-json-config: {{ include (print $.Template.BasePath "/dashboards-json-configmap.yaml") . | sha256sum }}
+        checksum/sc-dashboard-provider-config: {{ include (print $.Template.BasePath "/configmap-dashboard-provider.yaml") . | sha256sum }}
+{{- if and (not .Values.admin.existingSecret) (not .Values.env.GF_SECURITY_ADMIN_PASSWORD__FILE) (not .Values.env.GF_SECURITY_ADMIN_PASSWORD) }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+{{- end }}
+{{- with .Values.podAnnotations }}
+{{ toYaml . | indent 8 }}
+{{- end }}
     spec:
-      nodeSelector:
-{{ toYaml .Values.server.nodeSelector | indent 12 }}
-      containers:
-        - name: {{ template "grafana.name" . }}
-          image: "{{ .Values.server.image }}"
-          imagePullPolicy: {{ default "Always" .Values.server.imagePullPolicy }}
-          env:
-            - name: GF_SECURITY_ADMIN_USER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ template "grafana.server.fullname" . }}
-                  key: grafana-admin-user
-            - name: GF_SECURITY_ADMIN_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ template "grafana.server.fullname" . }}
-                  key: grafana-admin-password
-            {{- if .Values.server.installPlugins }}
-            - name: GF_INSTALL_PLUGINS
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ template "grafana.server.fullname" . }}-config
-                  key: grafana-install-plugins
-            {{- end }}
-          ports:
-            - containerPort: 3000
-          readinessProbe:
-            httpGet:
-              path: /login
-              port: 3000
-            initialDelaySeconds: 30
-            timeoutSeconds: 30
-          resources:
-{{ toYaml .Values.server.resources | indent 12 }}
-          volumeMounts:
-            - name: config-volume
-              mountPath: {{ default "/etc/grafana" .Values.server.configLocalPath | quote }}
-            - name: dashboard-volume
-              mountPath: {{ default "/var/lib/grafana/dashboards" .Values.server.dashboardLocalPath | quote }}
-            - name: storage-volume
-              mountPath: {{ default "/var/lib/grafana/data" .Values.server.storageLocalPath | quote }}
-              subPath: "{{ .Values.server.persistentVolume.subPath }}"
-      terminationGracePeriodSeconds: {{ default 300 .Values.server.terminationGracePeriodSeconds }}
-      volumes:
-        - name: config-volume
-          configMap:
-            name: {{ template "grafana.server.fullname" . }}-config
-        - name: dashboard-volume
-          configMap:
-            name: {{ template "grafana.server.fullname" . }}-dashs
-        - name: storage-volume
-      {{- if .Values.server.persistentVolume.enabled }}
-          persistentVolumeClaim:
-            claimName: {{ if .Values.server.persistentVolume.existingClaim }}{{ .Values.server.persistentVolume.existingClaim }}{{- else }}{{ template "grafana.server.fullname" . }}{{- end }}
-      {{- else }}
-          emptyDir: {}
-      {{- end -}}
+      {{- include "grafana.pod" . | nindent 6 }}
+{{- end }}

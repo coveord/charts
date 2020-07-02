@@ -1,3 +1,4 @@
+{{- if .Values.server.enabled -}}
 The Prometheus server can be accessed via port {{ .Values.server.service.servicePort }} on the following DNS name from within your cluster:
 {{ template "prometheus.server.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
 
@@ -30,6 +31,7 @@ Get the Prometheus server URL by running these commands in the same shell:
 ######   WARNING: Persistence is disabled!!! You will lose your data when   #####
 ######            the Server pod is terminated.                             #####
 #################################################################################
+{{- end }}
 {{- end }}
 
 {{ if .Values.alertmanager.enabled }}
@@ -65,6 +67,44 @@ Get the Alertmanager URL by running these commands in the same shell:
 ######   WARNING: Persistence is disabled!!! You will lose your data when   #####
 ######            the AlertManager pod is terminated.                       #####
 #################################################################################
+{{- end }}
+{{- end }}
+
+{{- if .Values.nodeExporter.podSecurityPolicy.enabled }}
+{{- else }}
+#################################################################################
+######   WARNING: Pod Security Policy has been moved to a global property.  #####
+######            use .Values.podSecurityPolicy.enabled with pod-based      #####
+######            annotations                                               #####
+######            (e.g. .Values.nodeExporter.podSecurityPolicy.annotations) #####
+#################################################################################
+{{- end }}
+
+{{ if .Values.pushgateway.enabled }}
+The Prometheus PushGateway can be accessed via port {{ .Values.pushgateway.service.servicePort }} on the following DNS name from within your cluster:
+{{ template "prometheus.pushgateway.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+
+{{ if .Values.pushgateway.ingress.enabled -}}
+From outside the cluster, the pushgateway URL(s) are:
+{{- range .Values.pushgateway.ingress.hosts }}
+http://{{ . }}
+{{- end }}
+{{- else }}
+Get the PushGateway URL by running these commands in the same shell:
+{{- if contains "NodePort" .Values.pushgateway.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ template "prometheus.pushgateway.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.pushgateway.service.type }}
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+        You can watch the status of by running 'kubectl get svc --namespace {{ .Release.Namespace }} -w {{ template "prometheus.pushgateway.fullname" . }}'
+
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ template "prometheus.pushgateway.fullname" . }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  echo http://$SERVICE_IP:{{ .Values.pushgateway.service.servicePort }}
+{{- else if contains "ClusterIP"  .Values.pushgateway.service.type }}
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app={{ template "prometheus.name" . }},component={{ .Values.pushgateway.name }}" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 9091
+{{- end }}
 {{- end }}
 {{- end }}
 

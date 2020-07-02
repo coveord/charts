@@ -2,22 +2,17 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: {{ template "fullname" . }}-osclass
+  name: {{ template "osclass.fullname" . }}-osclass
   labels:
-    app: {{ template "fullname" . }}
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    app: {{ template "osclass.fullname" . }}
+    chart: {{ template "osclass.chart" . }}
     release: "{{ .Release.Name }}"
     heritage: "{{ .Release.Service }}"
-  annotations:
-  {{- if .Values.persistence.osclass.storageClass }}
-    volume.beta.kubernetes.io/storage-class: {{ .Values.persistence.osclass.storageClass | quote }}
-  {{- else }}
-    volume.alpha.kubernetes.io/storage-class: default
-  {{- end }}
 spec:
   accessModes:
     - {{ .Values.persistence.osclass.accessMode | quote }}
   resources:
     requests:
       storage: {{ .Values.persistence.osclass.size | quote }}
+  {{ include "osclass.storageClass" . }}
 {{- end -}}

@@ -1,23 +1,28 @@
-{{- if .Values.artifactory.persistence.enabled }}
+{{- if and .Values.artifactory.persistence.enabled (not .Values.artifactory.persistence.existingClaim) -}}
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: {{ template "artifactory.fullname" . }}
   labels:
-    app: {{ template "name" . }}
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-    release: "{{ .Release.Name }}"
-    heritage: "{{ .Release.Service }}"
+    app: {{ template "artifactory.name" . }}
+    chart: {{ template "artifactory.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- if .Values.artifactory.persistence.annotations }}
   annotations:
-  {{- if .Values.artifactory.persistence.storageClass }}
-    volume.beta.kubernetes.io/storage-class: {{ .Values.artifactory.persistence.storageClass | quote }}
-  {{- else }}
-    volume.alpha.kubernetes.io/storage-class: default
-  {{- end }}
+{{ toYaml .Values.artifactory.persistence.annotations | indent 4 }}
+{{- end }}
 spec:
   accessModes:
     - {{ .Values.artifactory.persistence.accessMode | quote }}
   resources:
     requests:
       storage: {{ .Values.artifactory.persistence.size | quote }}
+{{- if .Values.artifactory.persistence.storageClass }}
+{{- if (eq "-" .Values.artifactory.persistence.storageClass) }}
+  storageClassName: ""
+{{- else }}
+  storageClassName: "{{ .Values.artifactory.persistence.storageClass }}"
+{{- end }}
+{{- end }}
 {{- end }}

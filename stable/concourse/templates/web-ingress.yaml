@@ -1,13 +1,14 @@
+{{- if .Values.web.enabled -}}
 {{- if .Values.web.ingress.enabled -}}
 {{- $releaseName := .Release.Name -}}
 {{- $serviceName := default "web" .Values.web.nameOverride -}}
-{{- $servicePort := .Values.concourse.atcPort -}}
+{{- $servicePort := .Values.concourse.web.bindPort -}}
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: {{ template "web.fullname" . }}
+  name: {{ template "concourse.web.fullname" . }}
   labels:
-    app: {{ template "web.fullname" . }}
+    app: {{ template "concourse.web.fullname" . }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     release: "{{ .Release.Name }}"
     heritage: "{{ .Release.Service }}"
@@ -29,4 +30,5 @@ spec:
   tls:
 {{ toYaml .Values.web.ingress.tls | indent 4 }}
   {{- end -}}
+{{- end -}}
 {{- end -}}
